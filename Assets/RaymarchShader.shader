@@ -68,6 +68,7 @@
 				//float thing1 = DEM(p - float3(0, 0, 0), 20, 2, _SinTime.x * 40);
 
 				return opS(Sphere1, box1);
+				//return thing1;
  			}
 
 			float3 getNormal(float3 p)
