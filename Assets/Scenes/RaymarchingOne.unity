@@ -208,14 +208,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _shader: {fileID: 4800000, guid: c9da89a8911eaf945a9c806478148a3f, type: 3}
-  _maxDistance: 600
+  _maxDistance: 2000
+  _MaxIterations: 1000
+  _Accuracy: 0.001
+  _modInterval: {x: -91, y: 12.4, z: 6.3}
   _directionalLight: {fileID: 1034850324}
-  _LightCol: {r: 0.9528302, g: 0.9528302, b: 0.9528302, a: 0}
+  _LightCol: {r: 0.06808472, g: 0.9622642, b: 0.42040852, a: 0}
   _LightIntensity: 1
-  _ShadowIntensity: 1.62
-  _ShadowPenumbra: 62
-  _ShadowDistance: {x: 0.1, y: 20}
-  _mainColor: {r: 0.9150943, g: 0.88812786, b: 0.55682623, a: 1}
+  _ShadowIntensity: 1.4
+  _ShadowPenumbra: 99
+  _ShadowDistance: {x: 0.1, y: 30.6}
+  _AoStepSize: 0.15
+  _AoIterations: 1
+  _AoIntensity: 0.5
+  _mainColor: {r: 1, g: 0.96610236, b: 0.504717, a: 1}
   _sphere1: {x: 0, y: 2.5, z: 0, w: 2.9}
   _box1: {x: 0, y: 2.5, z: 0, w: 2.6}
   _box1Round: 0.1

@@ -22,6 +22,8 @@
 			sampler2D _MainTex;
 			uniform sampler2D _CameraDepthTexture;
 			uniform float4x4 _CamFrustum, _CamToWorld;
+			uniform int _MaxIterations;
+			uniform float _Accuracy;
 			uniform float _maxDistance, _box1Round, _boxSphereSmooth, _sphereIntersectSmooth;
 			uniform float _ShadowIntensity, _ShadowPenumbra;
 			uniform float2 _ShadowDistance;
@@ -30,6 +32,7 @@
 			uniform float4 _sphere1, _sphere2, _box1;
 			uniform float _LightIntensity;
 			uniform fixed4 _mainColor;
+
 
             struct appdata
             {
@@ -81,6 +84,7 @@
 				float boxSphere1 = BoxSphere(p);
 
 				return opU(ground, boxSphere1);
+				//return boxSphere1;
  			}
 
 			float3 getNormal(float3 p)
@@ -120,14 +124,38 @@
 				return result;
 			}
 
+			uniform float _AoStepSize, _AoIntensity;;
+			uniform int _AoIterations;
+
+			float AmbientOcclusion(float3 p, float3 n) 
+			{
+				float step = _AoStepSize;
+				float ao = 0.0;
+				float dist;
+				for (int i = 1; i <= _AoIterations; i++) {
+					dist = step * i;
+					ao += max(0.0, (dist - distanceField(p + n * dist))/dist);
+				}
+				return (1.0 - ao * _AoIntensity);
+
+			}
+
 			float3 Shading(float3 p, float3 n) {
+				float3 result;
+				// Diffuse Color
+				float3 color = _mainColor.rgb;
+
 				// Directional light
-				float result = (_LightCol * dot(-_lightDir, n) * 0.5 + 0.5) * _LightIntensity;
+				float3 light = (_LightCol * dot(-_lightDir, n) * 0.5 + 0.5) * _LightIntensity;
 
 				// Shadows
 				float shadow = SoftShadow(p, -_lightDir, _ShadowDistance.x, _ShadowDistance.y, _ShadowPenumbra) * 0.5 + 0.5;
 				shadow = max(0,pow(shadow, _ShadowIntensity));
-				result *= shadow;
+
+				//Ambient Occlusion
+				float ao = AmbientOcclusion(p, n);
+
+				result = color * light * shadow * ao;
 
 				return result;
 			}
@@ -135,7 +163,7 @@
 			fixed4 raymarching(float3 ro, float3 rd, float depth) 
 			{
 				fixed4 result = fixed4(1, 1, 1, 1);
-				const int max_iterarion = 500;
+				const int max_iterarion = _MaxIterations;
 				float t = 0; //distanced traveled along ray
 
 				for (int i = 0; i < max_iterarion; i++) {
@@ -149,13 +177,13 @@
 					float3 p = ro + rd * t;
 					// check for hit in distance field
 					float d = distanceField(p);
-					if (d < 0.01) // We have hit something
+					if (d < _Accuracy) // We have hit something
 					{
 						// shading!
 						float3 n = getNormal(p);
 						float3 s = Shading(p, n);
 
-						result = fixed4(fixed3(_mainColor.rgb) * s,1);
+						result = fixed4(fixed3(s),1);
 						break;
 					}
 					t += d;
