@@ -22,10 +22,13 @@
 			sampler2D _MainTex;
 			uniform sampler2D _CameraDepthTexture;
 			uniform float4x4 _CamFrustum, _CamToWorld;
-			uniform float _maxDistance;
-			uniform float4 _sphere1, _box1;
+			uniform float _maxDistance, _box1Round, _boxSphereSmooth, _sphereIntersectSmooth;
+			uniform float _ShadowIntensity, _ShadowPenumbra;
+			uniform float2 _ShadowDistance;
 			uniform float3 _modInterval;
-			uniform float3 _lightDir;
+			uniform float3 _lightDir, _LightCol;
+			uniform float4 _sphere1, _sphere2, _box1;
+			uniform float _LightIntensity;
 			uniform fixed4 _mainColor;
 
             struct appdata
@@ -57,18 +60,27 @@
                 return o;
             }
 
+			float BoxSphere(float3 p) {
+				float sphere1 = sdSphere(p - _sphere1.xyz, _sphere1.w);
+				float box1 = sdRoundBox(p - _box1.xyz, _box1.www, _box1Round);
+				float combined1 = opSS(sphere1, box1, _boxSphereSmooth);
+				float sphere2 = sdSphere(p - _sphere2.xyz, _sphere2.w);
+				float combined2 = opIS(sphere2, combined1, _sphereIntersectSmooth);
+				return combined2;
+			}
+
 			float distanceField(float3 p) 
 			{
-				float modX = pMod1(p.x, _modInterval.x);
-				float modY = pMod1(p.y, _modInterval.y);
-				float modZ = pMod1(p.z, _modInterval.z);
-				float Sphere1 = sdSphere(p - _sphere1.xyz, _sphere1.w);
-				float box1 = sdBox(p - _box1.xyz, _box1.www);
+				//float modX = pMod1(p.x, _modInterval.x);
+				//float modY = pMod1(p.y, _modInterval.y);
+				//float modZ = pMod1(p.z, _modInterval.z);
 				//float triang1 = DE(p - float3(0, 0, 0), 2, 50, 100.0);
 				//float thing1 = DEM(p - float3(0, 0, 0), 20, 2, _SinTime.x * 40);
 
-				return opS(Sphere1, box1);
-				//return thing1;
+				float ground = sdPlane(p, float4(0, 1, 0, 0));
+				float boxSphere1 = BoxSphere(p);
+
+				return opU(ground, boxSphere1);
  			}
 
 			float3 getNormal(float3 p)
@@ -80,6 +92,44 @@
 					distanceField(p + offset.yyx) - distanceField(p - offset.yyx));
 
 				return normalize(n);
+			}
+
+			float HardShadow(float3 ro, float3 rd, float mint, float maxt) {
+				float t = mint;
+				while (t < maxt){
+					float h = distanceField(ro + rd * t);
+					if (h < 0.001) {
+						return 0.0;
+					}		
+					t += h;
+				}
+				return 1.0;
+			}
+
+			float SoftShadow(float3 ro, float3 rd, float mint, float maxt, float k) {
+				float result = 1.0;
+				float t = mint;
+				while (t < maxt) {
+					float h = distanceField(ro + rd * t);
+					if (h < 0.001) {
+						return 0.0;
+					}
+					result = min(result, k*h / t);
+					t += h;
+				}
+				return result;
+			}
+
+			float3 Shading(float3 p, float3 n) {
+				// Directional light
+				float result = (_LightCol * dot(-_lightDir, n) * 0.5 + 0.5) * _LightIntensity;
+
+				// Shadows
+				float shadow = SoftShadow(p, -_lightDir, _ShadowDistance.x, _ShadowDistance.y, _ShadowPenumbra) * 0.5 + 0.5;
+				shadow = max(0,pow(shadow, _ShadowIntensity));
+				result *= shadow;
+
+				return result;
 			}
 
 			fixed4 raymarching(float3 ro, float3 rd, float depth) 
@@ -103,9 +153,9 @@
 					{
 						// shading!
 						float3 n = getNormal(p);
-						float light = dot(-_lightDir, n);
+						float3 s = Shading(p, n);
 
-						result = fixed4(fixed3(_mainColor.rgb) * light,1);
+						result = fixed4(fixed3(_mainColor.rgb) * s,1);
 						break;
 					}
 					t += d;

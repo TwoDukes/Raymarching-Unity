@@ -34,13 +34,32 @@ public class RaymarchCamera : SceneViewFilter
         }
     }
     private Camera _cam;
-
     public float _maxDistance;
+
+    [Header("Directional Light")]
+    public Transform _directionalLight;
+    public Color _LightCol;
+    public float _LightIntensity;
+
+    [Header("Shadow")]
+    [Range(0, 4)]
+    public float _ShadowIntensity;
+    [Range(1, 128)]
+    public float _ShadowPenumbra;
+    public Vector2 _ShadowDistance;
+
+    [Header("Signed Distance Field")]
     public Color _mainColor;
     public Vector4 _sphere1;
     public Vector4 _box1;
-    public Transform _directionalLight;
-    public Vector3 _modInterval;
+    public float _box1Round;
+    public float _boxSphereSmooth;
+    public Vector4 _sphere2;
+    public float _sphereIntersectSmooth;
+
+
+
+    //public Vector3 _modInterval;
 
     private void OnRenderImage(RenderTexture source, RenderTexture destination)
     {
@@ -50,14 +69,27 @@ public class RaymarchCamera : SceneViewFilter
             return;
         }
 
-        _raymarchMaterial.SetVector("_lightDir", _directionalLight ? _directionalLight.forward : Vector3.down);
         _raymarchMaterial.SetMatrix("_CamFrustum", CamFrustum(_camera));
         _raymarchMaterial.SetMatrix("_CamToWorld", _camera.cameraToWorldMatrix);
         _raymarchMaterial.SetFloat("_maxDistance", _maxDistance);
-        _raymarchMaterial.SetVector("_sphere1", _sphere1);
-        _raymarchMaterial.SetVector("_box1", _box1);
-        _raymarchMaterial.SetVector("_modInterval", _modInterval);
+
+        _raymarchMaterial.SetVector("_lightDir", _directionalLight ? _directionalLight.forward : Vector3.down);
+        _raymarchMaterial.SetColor("_LightCol", _LightCol);
+        _raymarchMaterial.SetFloat("_LightIntensity", _LightIntensity);
+
+        _raymarchMaterial.SetFloat("_ShadowIntensity", _ShadowIntensity);
+        _raymarchMaterial.SetFloat("_ShadowPenumbra", _ShadowPenumbra);
+        _raymarchMaterial.SetVector("_ShadowDistance", _ShadowDistance);
+
         _raymarchMaterial.SetColor("_mainColor", _mainColor);
+        _raymarchMaterial.SetFloat("_box1Round", _box1Round);
+        _raymarchMaterial.SetFloat("_boxSphereSmooth", _boxSphereSmooth);
+        _raymarchMaterial.SetFloat("_sphereIntersectSmooth", _sphereIntersectSmooth);
+        _raymarchMaterial.SetVector("_sphere1", _sphere1);
+        _raymarchMaterial.SetVector("_sphere2", _sphere2);
+        _raymarchMaterial.SetVector("_box1", _box1);
+
+        //_raymarchMaterial.SetVector("_modInterval", _modInterval);
 
         RenderTexture.active = destination;
         _raymarchMaterial.SetTexture("_MainTex", source);
